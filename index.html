@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Kuis Pelajaran — Latihan Soal Cerdas Berbasis Foto & AI</title>
+
+    <!-- SEO & Metadata agar mudah ditemukan di Google -->
+    <meta name="description" content="Kuis Pelajaran: buat latihan soal otomatis dari foto catatan buku, papan tulis, atau topik pelajaran dengan AI, dilengkapi ruang diskusi & chat serta asisten @KB AI." />
+    <meta name="keywords" content="Kuis Pelajaran, latihan soal AI, foto catatan pelajaran, kuis otomatis, belajar interaktif, @KB AI" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Fenwi" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Kuis Pelajaran — Latihan Soal Cerdas Berbasis Foto & AI" />
+    <meta property="og:description" content="Ubah foto catatan pelajaran atau topik materi menjadi kuis latihan interaktif secara instan, lengkap dengan forum diskusi dan asisten @KB AI." />
+    <meta property="og:locale" content="id_ID" />
+
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Kuis Pelajaran",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "inLanguage": "id-ID",
+        "description": "Aplikasi latihan soal pelajaran berbasis foto catatan, materi teks/AI, serta ruang diskusi dengan asisten @KB AI."
+    }
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Firebase SDK (Compat untuk integrasi cloud real-time dengan fallback lokal aman) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-app: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border-subtle: #e2e8f0;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+        }
+
+        html.dark {
+            --bg-app: #0b1120;
+            --bg-card: #111827;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-subtle: #1e293b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+            transition: background-color 0.25s ease, color 0.25s ease;
+            overflow-x: hidden;
+        }
+
+        /* Skala ukuran teks yang dapat diatur pengguna */
+        body.font-scale-sm { font-size: 14px; }
+        body.font-scale-md { font-size: 16px; }
+        body.font-scale-lg { font-size: 18px; }
+
+        /* Splash screen dengan pengaman waktu agar tidak pernah macet */
+        #kp-splash-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3rem 1.5rem 1.5rem;
+            background: linear-gradient(160deg, #eef2ff 0%, #ffffff 55%, #e0e7ff 100%);
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+
+        html.dark #kp-splash-screen {
+            background: linear-gradient(160deg, #090d16 0%, #111827 55%, #1e1b4b 100%);
+        }
+
+        #kp-splash-screen.splash-hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        @keyframes kpLogoPulse {
+            0% {
+                opacity: 0;
+                transform: scale(0.88);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .kp-splash-logo-wrap {
+            animation: kpLogoPulse 0.45s ease-out forwards;
+        }
+
+        /* Animasi halus */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.28s ease-out forwards;
+        }
+
+        /* Custom scrollbar tipis */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.45);
+            border-radius: 9999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+    </style>
+</head>
+<body class="font-scale-md min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+    <!-- SPLASH SCREEN LOGO KUIS PELAJARAN -->
+    <div id="kp-splash-screen" aria-label="Splash Screen Kuis Pelajaran">
+        <div></div>
+
+        <div class="kp-splash-logo-wrap flex flex-col items-center text-center gap-3">
+            <!-- Logo SVG Kuis Pelajaran -->
+            <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 shadow-2xl shadow-indigo-500/35 flex items-center justify-center text-white border border-white/25">
+                <svg class="w-12 h-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="7" y="9" width="22" height="30" rx="4" fill="rgba(255,255,255,0.22)" stroke="white" stroke-width="2.5"/>
+                    <path d="M13 17H23M13 23H23M13 29H19" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="34" cy="31" r="9" fill="#facc15" stroke="#1e1b4b" stroke-width="2.2"/>
+                    <path d="M31.5 29C31.5 27.6 32.6 26.6 34 26.6C35.4 26.6 36.5 27.5 36.5 28.8C36.5 29.9 35.6 30.5 34.6 31.1C34.1 31.4 34 31.8 34 32.4M34 35.2H34.01" stroke="#1e1b4b" stroke-width="2.3" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Kuis Pelajaran</h1>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">Latihan Soal &amp; Diskusi Pintar</p>
+            </div>
+        </div>
+
+        <!-- Tulisan kecil by Fenwi® 2026 di bagian paling bawah -->
+        <div class="text-[11px] font-medium tracking-wide text-slate-400 dark:text-slate-500 select-none">
+            by Fenwi® 2026
+        </div>
+    </div>
+
+    <!-- HEADER UTAMA -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+            <!-- Brand -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <button
+                    type="button"
+                    onclick="showQuizHome()"
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white font-extrabold text-sm flex items-center justify-center shadow-md shadow-indigo-500/20 hover:opacity-95 transition cursor-pointer shrink-0"
+                    title="Kembali ke Beranda Kuis Pelajaran"
+                >
+                    KP
+                </button>
+                <div class="truncate">
+                    <span class="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white">
+                        Kuis Pelajaran
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tombol Utilitas Header (Pengaturan & Tema) -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <button
+                    type="button"
+                    onclick="openPreferencesModal()"
+                    class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                    title="Pengaturan Aplikasi"
+                    aria-label="Pengaturan Aplikasi"
+                >
+                    ⚙️
+                </button>
+
+                <button
+                    type="button"
+                    onclick="toggleTheme()"
+                    class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                    title="Ganti Tema Gelap/Terang"
+                    aria-label="Ganti Tema"
+                >
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- BAR AKSI CEPAT (DISKUSI & CHAT + MASUK GMAIL) TERPISAH DARI JUDUL -->
+    <div class="max-w-4xl w-full mx-auto px-3 sm:px-6 pt-4">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+            <button
+                type="button"
+                id="btn-open-discussion"
+                onclick="openCommunityModal()"
+                class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 transition flex items-center gap-1.5 cursor-pointer"
+            >
+                <span>💬</span>
+                <span>Diskusi &amp; Chat</span>
+                <span id="header-unread-badge" class="hidden px-1.5 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-600 text-white">0</span>
+            </button>
+
+            <button
+                type="button"
+                id="btn-gmail-auth"
+                onclick="openGmailLoginModal()"
+                class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+                <span class="w-4 h-4 rounded-full bg-gradient-to-tr from-red-500 via-yellow-400 to-blue-500 text-[10px] font-black text-white flex items-center justify-center">G</span>
+                <span id="gmail-header-label" class="max-w-[130px] sm:max-w-[180px] truncate">Masuk Gmail</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- KONTEN UTAMA KUIS BELAJAR -->
+    <main id="quiz-main-container" class="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4">
+
+        <!-- PANEL SETUP KUIS -->
+        <section id="quiz-setup-section" class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 sm:p-7 space-y-6">
+            <div class="flex items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        Unggah Foto Catatan Pelajaran
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Pilih beberapa foto halaman buku tulis, papan tulis, atau rangkuman materi. AI akan menganalisis isinya dan membuatkan soal ujian untukmu.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onclick="resetSetupForm()"
+                    class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0 cursor-pointer"
+                >
+                    Buat Baru / Reset
+                </button>
+            </div>
+
+            <!-- Dropzone Upload Foto -->
+            <div
+                id="photo-dropzone"
+                onclick="document.getElementById('photo-file-input').click()"
+                class="group rounded-2xl border-2 border-dashed border-indigo-200 dark:border-indigo-800/80 hover:border-indigo-500 dark:hover:border-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 p-6 sm:p-8 text-center transition cursor-pointer"
+            >
+                <input
+                    type="file"
+                    id="photo-file-input"
+                    accept="image/*"
+                    multiple
+                    class="hidden"
+                    onchange="handlePhotoFilesSelected(event)"
+                />
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-xl mb-3 group-hover:scale-105 transition">
+                    🖼️
+                </div>
+                <p class="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100">
+                    Pilih dari Galeri / File
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Seret foto ke sini atau ketuk untuk memilih (maksimal 6 foto)
+                </p>
+            </div>
+
+            <!-- Pratinjau Foto Terpilih -->
+            <div id="photo-preview-list" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+
+            <!-- Panel Kamera Live Web -->
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 p-4 sm:p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-lg">
+                            📷
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800 dark:text-slate-100">Ambil Foto</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Potret catatan langsung menggunakan kamera perangkat</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onclick="openLiveCameraModal()"
+                        class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                        <span>📹</span>
+                        <span>Kamera Live Web</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pencarian Materi AI / Catatan Teks -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <label for="topic-or-notes-input" class="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                        <span>🔍</span>
+                        <span>Cari Materi via AI / Tempel Catatan Teks</span>
+                    </label>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                        Didukung Pencarian Web AI
+                    </span>
+                </div>
+                <textarea
+                    id="topic-or-notes-input"
+                    rows="4"
+                    placeholder="Ketik topik pelajaran agar AI mencarikan datanya (misal: 'Perang Diponegoro 1825-1830' atau 'Hukum Newton 1, 2, 3'), atau tempel teks catatanmu di sini..."
+                    class="w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                ></textarea>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Kamu bisa mengirim foto saja, teks/topik saja, atau menggabungkan keduanya sekaligus.
+                </p>
+            </div>
+
+            <!-- Pengaturan Jumlah Soal (Tepat di Menu Jumlah Soal Utama), Tingkat Kesulitan & Bonus -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                <div>
+                    <label for="question-count" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                        Jumlah Soal
+                    </label>
+                    <input
+                        type="number"
+                        id="question-count"
+                        min="1"
+                        max="100"
+                        step="1"
+                        value="8"
+                        placeholder="Pilih atau ketik jumlah soal"
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <button type="button" onclick="setQuickQuestionCount(5)" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-indigo-950 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">5</button>
+                        <button type="button" onclick="setQuickQuestionCount(10)" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-indigo-950 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">10</button>
+                        <button type="button" onclick="setQuickQuestionCount(15)" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-indigo-950 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">15</button>
+                        <button type="button" onclick="setQuickQuestionCount(20)" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-indigo-950 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">20</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="difficulty-level" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                        Tingkat Kesulitan
+                    </label>
+                    <select
+                        id="difficulty-level"
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="Mudah">Mudah</option>
+                        <option value="Sedang" selected>Sedang</option>
+                        <option value="Sulit / HOTS">Sulit / HOTS</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="bonus-focus" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                        Bonus Tambahan (Opsional)
+                    </label>
+                    <input
+                        type="text"
+                        id="bonus-focus"
+                        placeholder="Contoh: fokus rumus, istilah penting..."
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+            </div>
+
+            <!-- Tombol Buat Soal -->
+            <div class="pt-2">
+                <button
+                    type="button"
+                    id="btn-generate-quiz"
+                    onclick="generateQuizFromInputs()"
+                    class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                    <span id="generate-spinner" class="hidden w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                    <span id="generate-btn-label">✨ Buat Kuis Latihan Sekarang</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- PANEL KUIS AKTIF -->
+        <section id="quiz-active-section" class="hidden space-y-5 animate-fade-in-up">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 mb-1">
+                        Mode Ujian Aktif
+                    </span>
+                    <h2 id="quiz-topic-title" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
+                        Latihan Soal Pelajaran
+                    </h2>
+                    <p id="quiz-meta-info" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
+                </div>
+                <button
+                    type="button"
+                    onclick="showQuizHome()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer self-start sm:self-auto"
+                >
+                    ← Ganti Materi
+                </button>
+            </div>
+
+            <div id="quiz-questions-list" class="space-y-4"></div>
+
+            <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p id="quiz-progress-label" class="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300"></p>
+                <button
+                    type="button"
+                    onclick="gradeCurrentQuiz()"
+                    class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md transition cursor-pointer"
+                >
+                    ✅ Kumpulkan &amp; Lihat Nilai
+                </button>
+            </div>
+        </section>
+
+        <!-- PANEL HASIL NILAI -->
+        <section id="quiz-result-section" class="hidden bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 text-center space-y-5 animate-fade-in-up">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl font-black">
+                🏆
+            </div>
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">Hasil Latihan Soal</h2>
+                <p id="quiz-score-summary" class="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2"></p>
+                <p id="quiz-score-feedback" class="text-sm text-slate-600 dark:text-slate-300 mt-1"></p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                    type="button"
+                    onclick="reviewQuizAnswers()"
+                    class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold cursor-pointer"
+                >
+                    🔍 Periksa Pembahasan Soal
+                </button>
+                <button
+                    type="button"
+                    onclick="showQuizHome()"
+                    class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                    Buat Kuis Baru
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER UTAMA -->
+    <footer id="main-app-footer" class="py-4 px-4 text-center border-t border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60">
+        <p id="footer-brand-credit" class="text-xs font-medium text-slate-500 dark:text-slate-400">
+            by Fenwi® 2026
+        </p>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- RUANG DISKUSI & CHAT PRIBADI FULL SCREEN (DENGAN @KB AI & PIN TOP)  -->
+    <!-- ===================================================================== -->
+    <div id="community-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex flex-col">
+        <div class="w-full h-full bg-white dark:bg-slate-900 flex flex-col overflow-hidden">
+            <!-- Header Full Screen -->
+            <div class="px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 shrink-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <button
+                        type="button"
+                        onclick="closeCommunityModal()"
+                        class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 transition cursor-pointer shrink-0"
+                    >
+                        ← Kembali ke Kuis
+                    </button>
+                    <h2 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                        Ruang Diskusi &amp; Chat Pribadi
+                    </h2>
+                </div>
+                <button
+                    type="button"
+                    onclick="closeCommunityModal()"
+                    class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950 text-slate-600 dark:text-slate-300 hover:text-rose-600 font-bold flex items-center justify-center cursor-pointer shrink-0"
+                    aria-label="Tutup Ruang Diskusi"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <!-- Body Layout Sidebar + Ruang Chat -->
+            <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+                <!-- Sidebar Kiri: Kanal, Asisten @KB AI, dan Pengguna Terdaftar -->
+                <aside class="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto max-h-52 lg:max-h-none shrink-0">
+                    <button
+                        type="button"
+                        id="room-btn-public"
+                        onclick="selectChatRoom('public')"
+                        class="w-full px-3.5 py-2.5 rounded-2xl bg-indigo-600 text-white text-xs sm:text-sm font-bold flex items-center justify-between shadow-xs cursor-pointer"
+                    >
+                        <span class="flex items-center gap-2">
+                            <span>🌐</span>
+                            <span>Forum Diskusi Publik</span>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/20">Umum</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        id="room-btn-kb-ai"
+                        onclick="selectChatRoom('kb_ai')"
+                        class="w-full px-3.5 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold flex items-center justify-between transition cursor-pointer"
+                    >
+                        <span class="flex items-center gap-2">
+                            <span>🤖</span>
+                            <span>Tanya @KB AI (Asisten)</span>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">AI</span>
+                    </button>
+
+                    <div class="pt-1">
+                        <div class="flex items-center justify-between px-1 mb-2">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Pengguna Gmail Terdaftar
+                            </span>
+                            <span id="registered-users-count" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                                0
+                            </span>
+                        </div>
+                        <div id="registered-users-list" class="space-y-1.5"></div>
+                    </div>
+                </aside>
+
+                <!-- Kolom Kanan: Header Kanal + Banner Sematan (Sticky Top) + Scroll Pesan + Input -->
+                <section class="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-900 relative">
+                    <!-- Sub-header Kanal Aktif -->
+                    <div class="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap bg-white dark:bg-slate-900 shrink-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span id="active-room-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span id="active-room-title" class="text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                                Forum Diskusi Publik
+                            </span>
+                            <span id="active-room-subtitle" class="hidden sm:inline text-xs text-slate-500 dark:text-slate-400 truncate">
+                                • Ketik @nama atau @KB AI untuk menandai
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button
+                                type="button"
+                                onclick="insertKbAiMention()"
+                                class="px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 cursor-pointer"
+                            >
+                                + @KB AI
+                            </button>
+                            <button
+                                type="button"
+                                onclick="pinAnnouncementPrompt()"
+                                class="px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800 cursor-pointer"
+                            >
+                                📌 Pengumuman
+                            </button>
+                            <button
+                                type="button"
+                                onclick="clearCurrentRoomMessages()"
+                                class="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 cursor-pointer"
+                            >
+                                🧹 Bersihkan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Banner Pesan Disematkan di Bagian Paling Atas (Tidak Tergeser Saat Scroll) -->
+                    <div id="pinned-announcement-banner" class="hidden sticky top-0 z-10 mx-3 sm:mx-5 mt-3 rounded-2xl border border-amber-300/90 dark:border-amber-700/80 bg-amber-50/95 dark:bg-amber-950/90 backdrop-blur-xs px-4 py-2.5 shadow-xs shrink-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                                    <span>📌</span>
+                                    <span>Pesan Disematkan</span>
+                                    <span id="pinned-author-label" class="font-semibold opacity-80"></span>
+                                </div>
+                                <p id="pinned-announcement-text" class="text-xs sm:text-sm font-semibold text-amber-950 dark:text-amber-100 mt-0.5 break-words"></p>
+                            </div>
+                            <button
+                                type="button"
+                                onclick="unpinAnnouncement()"
+                                class="text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline shrink-0 cursor-pointer"
+                                title="Lepas Sematan"
+                            >
+                                Lepas
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Area Daftar Pesan (Scrollable) -->
+                    <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 sm:px-5 py-4 space-y-3 min-h-0"></div>
+
+                    <!-- Form Pengiriman Pesan -->
+                    <form onsubmit="handleSendChatMessage(event)" class="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 flex items-center gap-2 shrink-0">
+                        <input
+                            type="text"
+                            id="chat-message-input"
+                            placeholder="Tulis pesan diskusi atau ketik @KB AI diikuti pertanyaan..."
+                            autocomplete="off"
+                            class="flex-1 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <button
+                            type="submit"
+                            class="px-4 sm:px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-extrabold shadow-sm transition cursor-pointer shrink-0"
+                        >
+                            Kirim
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL LOGIN / DAFTAR AKUN GMAIL                                       -->
+    <!-- ===================================================================== -->
+    <div id="gmail-auth-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5 animate-fade-in-up">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-base">
+                        <span class="bg-gradient-to-tr from-red-500 via-yellow-400 to-blue-500 bg-clip-text text-transparent">G</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Akun Gmail Kuis Pelajaran</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Dilindungi kata sandi pribadi agar akunmu aman</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onclick="closeGmailLoginModal()"
+                    class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold flex items-center justify-center cursor-pointer"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <!-- Info Sesi Aktif Jika Sudah Login -->
+            <div id="gmail-active-session-box" class="hidden rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 p-3.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Sedang Masuk</p>
+                    <p id="active-session-name" class="text-sm font-bold text-slate-900 dark:text-white truncate"></p>
+                    <p id="active-session-email" class="text-xs text-slate-600 dark:text-slate-300 truncate"></p>
+                </div>
+                <button
+                    type="button"
+                    onclick="logoutGmailAccount()"
+                    class="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 cursor-pointer shrink-0"
+                >
+                    Keluar
+                </button>
+            </div>
+
+            <!-- Tab Masuk / Daftar -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800">
+                <button
+                    type="button"
+                    id="tab-btn-login"
+                    onclick="switchAuthTab('login')"
+                    class="py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs cursor-pointer"
+                >
+                    Masuk Akun
+                </button>
+                <button
+                    type="button"
+                    id="tab-btn-register"
+                    onclick="switchAuthTab('register')"
+                    class="py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 cursor-pointer"
+                >
+                    Daftar Akun Baru
+                </button>
+            </div>
+
+            <!-- Pesan Status/Error Auth -->
+            <div id="gmail-auth-feedback" class="hidden rounded-2xl px-3.5 py-2.5 text-xs font-semibold"></div>
+
+            <!-- Form Masuk -->
+            <form id="form-gmail-login" onsubmit="handleGmailLoginSubmit(event)" class="space-y-3.5">
+                <div>
+                    <label for="login-gmail-input" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Alamat Gmail</label>
+                    <input
+                        type="email"
+                        id="login-gmail-input"
+                        required
+                        placeholder="nama@gmail.com"
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label for="login-password-input" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kata Sandi</label>
+                    <div class="relative">
+                        <input
+                            type="password"
+                            id="login-password-input"
+                            required
+                            placeholder="Masukkan kata sandi"
+                            class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 pr-16 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <button
+                            type="button"
+                            onclick="togglePasswordVisibility('login-password-input', this)"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer"
+                        >
+                            Lihat
+                        </button>
+                    </div>
+                </div>
+                <button
+                    type="submit"
+                    class="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-extrabold shadow-md transition cursor-pointer"
+                >
+                    Masuk Sekarang
+                </button>
+            </form>
+
+            <!-- Form Daftar -->
+            <form id="form-gmail-register" onsubmit="handleGmailRegisterSubmit(event)" class="hidden space-y-3.5">
+                <div>
+                    <label for="reg-name-input" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap / Panggilan</label>
+                    <input
+                        type="text"
+                        id="reg-name-input"
+                        required
+                        placeholder="Contoh: Fenwi"
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label for="reg-gmail-input" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Alamat Gmail</label>
+                    <input
+                        type="email"
+                        id="reg-gmail-input"
+                        required
+                        placeholder="nama@gmail.com"
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label for="reg-password-input" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Buat Kata Sandi (min. 6 karakter)</label>
+                    <input
+                        type="password"
+                        id="reg-password-input"
+                        required
+                        minlength="6"
+                        placeholder="Minimal 6 karakter"
+                        class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <button
+                    type="submit"
+                    class="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-extrabold shadow-md transition cursor-pointer"
+                >
+                    Daftar &amp; Masuk
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL KAMERA LIVE WEB                                                 -->
+    <!-- ===================================================================== -->
+    <div id="camera-live-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-fade-in-up">
+            <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">📷 Kamera Live Catatan</h3>
+                <button
+                    type="button"
+                    onclick="closeLiveCameraModal()"
+                    class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center cursor-pointer"
+                >
+                    ✕
+                </button>
+            </div>
+            <div class="p-4 space-y-3">
+                <div class="relative rounded-2xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center">
+                    <video id="camera-video-preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    <p id="camera-status-msg" class="hidden px-4 text-center text-xs sm:text-sm text-white/90"></p>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <button
+                        type="button"
+                        onclick="switchCameraFacingMode()"
+                        class="px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                        🔄 Ganti Kamera
+                    </button>
+                    <button
+                        type="button"
+                        onclick="captureLiveCameraPhoto()"
+                        class="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold shadow-sm cursor-pointer"
+                    >
+                        📸 Jepret Foto Catatan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL PENGATURAN APLIKASI                                             -->
+    <!-- ===================================================================== -->
+    <div id="preferences-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 animate-fade-in-up">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">⚙️ Pengaturan Tampilan</h3>
+                <button
+                    type="button"
+                    onclick="closePreferencesModal()"
+                    class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold flex items-center justify-center cursor-pointer"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label for="pref-splash-duration" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Durasi Splash Screen</label>
+                    <select id="pref-splash-duration" onchange="updatePreferencesFromUI()" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs sm:text-sm font-semibold">
+                        <option value="500">0,5 Detik</option>
+                        <option value="1000" selected>1 Detik</option>
+                        <option value="2000">2 Detik</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="pref-font-scale" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Ukuran Teks</label>
+                    <select id="pref-font-scale" onchange="updatePreferencesFromUI()" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs sm:text-sm font-semibold">
+                        <option value="sm">Kecil</option>
+                        <option value="md" selected>Standar</option>
+                        <option value="lg">Besar</option>
+                    </select>
+                </div>
+
+                <label class="flex items-center justify-between gap-3 pt-1 cursor-pointer">
+                    <span class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Tampilkan kredit "by Fenwi® 2026" di footer</span>
+                    <input type="checkbox" id="pref-show-footer-credit" checked onchange="updatePreferencesFromUI()" class="w-4 h-4 accent-indigo-600 rounded" />
+                </label>
+
+                <label class="flex items-center justify-between gap-3 cursor-pointer">
+                    <span class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Mode kompak pada ruang chat</span>
+                    <input type="checkbox" id="pref-compact-chat" onchange="updatePreferencesFromUI()" class="w-4 h-4 accent-indigo-600 rounded" />
+                </label>
+            </div>
+
+            <div class="pt-2 flex items-center justify-between gap-2">
+                <button
+                    type="button"
+                    onclick="downloadStandaloneHtmlCopy()"
+                    class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-xs font-bold cursor-pointer"
+                >
+                    ⬇️ Unduh File .html
+                </button>
+                <button
+                    type="button"
+                    onclick="resetPreferencesToDefault()"
+                    class="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                    Reset Bawaan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =====================================================================
+         * KONFIGURASI & KUNCI PENYIMPANAN LOKAL
+         * ===================================================================== */
+        const STORAGE_KEYS = {
+            ACCOUNTS: 'kp_saved_accounts_v1',
+            SESSION: 'kp_active_session_v1',
+            MESSAGES: 'kp_chat_messages_v1',
+            DELETED_IDS: 'kp_deleted_msg_ids_v1',
+            CLEARED_ROOMS: 'kp_cleared_rooms_v1',
+            PINNED: 'kp_pinned_announcements_v1',
+            PREFS: 'kp_user_preferences_v1',
+            THEME: 'kp_theme_mode_v1'
+        };
+
+        // Konfigurasi Firebase opsional (aman jika belum diisi)
+        const firebaseConfig = window.__FIREBASE_CONFIG__ || null;
+        let firestoreDb = null;
+
+        let currentUserSession = null;
+        let activeChatRoom = 'public';
+        let selectedPhotos = [];
+        let cameraStream = null;
+        let cameraFacingMode = 'environment';
+        let currentQuizData = null;
+        let userAnswers = {};
+
+        /* =====================================================================
+         * SPLASH SCREEN & PENGAMAN AGAR APLIKASI TIDAK PERNAH MACET
+         * ===================================================================== */
+        function getUserPreferences() {
+            const defaults = {
+                splashDuration: 1000,
+                fontScale: 'md',
+                showFooterCredit: true,
+                compactChat: false
+            };
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.PREFS);
+                if (!raw) return defaults;
+                return { ...defaults, ...JSON.parse(raw) };
+            } catch (err) {
+                return defaults;
+            }
+        }
+
+        function applyUserPreferencesToUI() {
+            const prefs = getUserPreferences();
+            document.body.classList.remove('font-scale-sm', 'font-scale-md', 'font-scale-lg');
+            document.body.classList.add('font-scale-' + (prefs.fontScale || 'md'));
+
+            const footerCredit = document.getElementById('footer-brand-credit');
+            if (footerCredit) {
+                footerCredit.classList.toggle('hidden', !prefs.showFooterCredit);
+            }
+
+            const splashEl = document.getElementById('pref-splash-duration');
+            const scaleEl = document.getElementById('pref-font-scale');
+            const creditEl = document.getElementById('pref-show-footer-credit');
+            const compactEl = document.getElementById('pref-compact-chat');
+            if (splashEl) splashEl.value = String(prefs.splashDuration || 1000);
+            if (scaleEl) scaleEl.value = prefs.fontScale || 'md';
+            if (creditEl) creditEl.checked = Boolean(prefs.showFooterCredit);
+            if (compactEl) compactEl.checked = Boolean(prefs.compactChat);
+
+            renderChatMessages();
+        }
+
+        function updatePreferencesFromUI() {
+            const prefs = {
+                splashDuration: Number(document.getElementById('pref-splash-duration')?.value || 1000),
+                fontScale: document.getElementById('pref-font-scale')?.value || 'md',
+                showFooterCredit: Boolean(document.getElementById('pref-show-footer-credit')?.checked),
+                compactChat: Boolean(document.getElementById('pref-compact-chat')?.checked)
+            };
+            try {
+                localStorage.setItem(STORAGE_KEYS.PREFS, JSON.stringify(prefs));
+            } catch (err) {}
+            applyUserPreferencesToUI();
+        }
+
+        function resetPreferencesToDefault() {
+            try {
+                localStorage.removeItem(STORAGE_KEYS.PREFS);
+            } catch (err) {}
+            applyUserPreferencesToUI();
+        }
+
+        function openPreferencesModal() {
+            applyUserPreferencesToUI();
+            document.getElementById('preferences-modal')?.classList.remove('hidden');
+        }
+
+        function closePreferencesModal() {
+            document.getElementById('preferences-modal')?.classList.add('hidden');
+        }
+
+        function dismissSplashScreen() {
+            const splash = document.getElementById('kp-splash-screen');
+            if (splash && !splash.classList.contains('splash-hide')) {
+                splash.classList.add('splash-hide');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 400);
+            }
+        }
+
+        function scheduleSplashDismiss() {
+            const prefs = getUserPreferences();
+            const delay = Math.min(Math.max(Number(prefs.splashDuration) || 1000, 300), 3000);
+            setTimeout(dismissSplashScreen, delay);
+            // Pengaman keras agar splash tidak pernah menahan layar lebih dari 2.5 detik
+            setTimeout(dismissSplashScreen, 2500);
+        }
+
+        /* =====================================================================
+         * TEMA & NOTIFIKASI ALERT
+         * ===================================================================== */
+        function initTheme() {
+            let mode = 'light';
+            try {
+                mode = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
+            } catch (err) {}
+            applyTheme(mode);
+        }
+
+        function applyTheme(mode) {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (mode === 'dark') {
+                html.classList.add('dark');
+                if (icon) icon.textContent = '☀️';
+            } else {
+                html.classList.remove('dark');
+                if (icon) icon.textContent = '🌙';
+            }
+            try {
+                localStorage.setItem(STORAGE_KEYS.THEME, mode);
+            } catch (err) {}
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            applyTheme(isDark ? 'light' : 'dark');
+        }
+
+        function showAlert(message, type = 'info') {
+            const box = document.getElementById('app-alert-box');
+            const text = document.getElementById('app-alert-text');
+            if (!box || !text) return;
+
+            box.className = 'mb-5 rounded-2xl border px-4 py-3 text-sm font-medium flex items-start justify-between gap-3 animate-fade-in-up';
+            if (type === 'error') {
+                box.classList.add('bg-rose-50', 'dark:bg-rose-950/60', 'border-rose-200', 'dark:border-rose-800', 'text-rose-800', 'dark:text-rose-200');
+            } else if (type === 'success') {
+                box.classList.add('bg-emerald-50', 'dark:bg-emerald-950/60', 'border-emerald-200', 'dark:border-emerald-800', 'text-emerald-800', 'dark:text-emerald-200');
+            } else {
+                box.classList.add('bg-indigo-50', 'dark:bg-indigo-950/60', 'border-indigo-200', 'dark:border-indigo-800', 'text-indigo-800', 'dark:text-indigo-200');
+            }
+
+            text.textContent = message;
+            box.classList.remove('hidden');
+        }
+
+        function hideAlert() {
+            document.getElementById('app-alert-box')?.classList.add('hidden');
+        }
+
+        /* =====================================================================
+         * AKUN GMAIL PERMANEN & SESI OTOMATIS
+         * ===================================================================== */
+        const WINDOW_BACKUP_PREFIX = 'KP_BACKUP_V1:';
+
+        function readWindowNameBackup() {
+            try {
+                const rawName = window.name || '';
+                if (!rawName.startsWith(WINDOW_BACKUP_PREFIX)) return {};
+                const parsed = JSON.parse(rawName.slice(WINDOW_BACKUP_PREFIX.length));
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (err) {
+                return {};
+            }
+        }
+
+        function writeWindowNameBackup(patchObj) {
+            try {
+                const current = readWindowNameBackup();
+                const merged = { ...current, ...patchObj };
+                window.name = WINDOW_BACKUP_PREFIX + JSON.stringify(merged);
+            } catch (err) {}
+        }
+
+        function readStorageWithFallback(key) {
+            // 1. Coba baca dari localStorage
+            try {
+                const rawLocal = localStorage.getItem(key);
+                if (rawLocal) {
+                    return JSON.parse(rawLocal);
+                }
+            } catch (err) {}
+
+            // 2. Cadangan dari sessionStorage
+            try {
+                const rawSession = sessionStorage.getItem(key);
+                if (rawSession) {
+                    return JSON.parse(rawSession);
+                }
+            } catch (err) {}
+
+            // 3. Cadangan dari window.name (bertahan saat reload/iframe reset)
+            const backupMap = readWindowNameBackup();
+            if (backupMap && Object.prototype.hasOwnProperty.call(backupMap, key)) {
+                return backupMap[key];
+            }
+
+            return null;
+        }
+
+        function writeStorageWithFallback(key, value) {
+            const serialized = JSON.stringify(value);
+            try {
+                localStorage.setItem(key, serialized);
+            } catch (err) {}
+
+            try {
+                sessionStorage.setItem(key, serialized);
+            } catch (err) {}
+
+            writeWindowNameBackup({ [key]: value });
+        }
+
+        function removeStorageWithFallback(key) {
+            try {
+                localStorage.removeItem(key);
+            } catch (err) {}
+
+            try {
+                sessionStorage.removeItem(key);
+            } catch (err) {}
+
+            writeWindowNameBackup({ [key]: null });
+        }
+
+        function normalizeEmailAddress(rawEmail) {
+            return String(rawEmail || '').trim().toLowerCase();
+        }
+
+        function getSavedAccountsLocal() {
+            try {
+                const parsed = readStorageWithFallback(STORAGE_KEYS.ACCOUNTS);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.filter((item) => item && typeof item === 'object' && item.email);
+            } catch (err) {
+                return [];
+            }
+        }
+
+        function saveAccountLocal(accountObj) {
+            const existing = getSavedAccountsLocal();
+            const normalizedEmail = normalizeEmailAddress(accountObj.email);
+            if (!normalizedEmail) return;
+
+            const idx = existing.findIndex((a) => normalizeEmailAddress(a.email) === normalizedEmail);
+            const record = {
+                name: (accountObj.name || normalizedEmail.split('@')[0]).trim(),
+                email: normalizedEmail,
+                passwordHash: accountObj.passwordHash || '',
+                createdAt: accountObj.createdAt || Date.now()
+            };
+
+            if (idx >= 0) {
+                existing[idx] = {
+                    ...existing[idx],
+                    ...record,
+                    passwordHash: record.passwordHash || existing[idx].passwordHash || ''
+                };
+            } else {
+                existing.push(record);
+            }
+
+            writeStorageWithFallback(STORAGE_KEYS.ACCOUNTS, existing);
+            renderRegisteredUsers();
+        }
+
+        async function hashPasswordSha256(password) {
+            try {
+                const enc = new TextEncoder().encode(password);
+                const buf = await crypto.subtle.digest('SHA-256', enc);
+                return Array.from(new Uint8Array(buf))
+                    .map((b) => b.toString(16).padStart(2, '0'))
+                    .join('');
+            } catch (err) {
+                return 'plain_' + btoa(unescape(encodeURIComponent(password)));
+            }
+        }
+
+        function updateHeaderAuthLabel() {
+            const label = document.getElementById('gmail-header-label');
+            const activeBox = document.getElementById('gmail-active-session-box');
+            const sessionName = document.getElementById('active-session-name');
+            const sessionEmail = document.getElementById('active-session-email');
+
+            if (currentUserSession && currentUserSession.email) {
+                if (label) label.textContent = currentUserSession.name || currentUserSession.email;
+                if (activeBox) activeBox.classList.remove('hidden');
+                if (sessionName) sessionName.textContent = currentUserSession.name || 'Pengguna Gmail';
+                if (sessionEmail) sessionEmail.textContent = currentUserSession.email;
+            } else {
+                if (label) label.textContent = 'Masuk Gmail';
+                if (activeBox) activeBox.classList.add('hidden');
+            }
+            renderRegisteredUsers();
+        }
+
+        function setAuthFeedback(msg, isError = true) {
+            const el = document.getElementById('gmail-auth-feedback');
+            if (!el) return;
+            el.className = 'rounded-2xl px-3.5 py-2.5 text-xs font-semibold block';
+            if (isError) {
+                el.classList.add('bg-rose-50', 'dark:bg-rose-950/60', 'text-rose-700', 'dark:text-rose-200', 'border', 'border-rose-200', 'dark:border-rose-800');
+            } else {
+                el.classList.add('bg-emerald-50', 'dark:bg-emerald-950/60', 'text-emerald-700', 'dark:text-emerald-200', 'border', 'border-emerald-200', 'dark:border-emerald-800');
+            }
+            el.textContent = msg;
+        }
+
+        function clearAuthFeedback() {
+            const el = document.getElementById('gmail-auth-feedback');
+            if (el) {
+                el.textContent = '';
+                el.classList.add('hidden');
+            }
+        }
+
+        function switchAuthTab(tab) {
+            clearAuthFeedback();
+            const loginForm = document.getElementById('form-gmail-login');
+            const regForm = document.getElementById('form-gmail-register');
+            const loginBtn = document.getElementById('tab-btn-login');
+            const regBtn = document.getElementById('tab-btn-register');
+
+            if (tab === 'register') {
+                loginForm?.classList.add('hidden');
+                regForm?.classList.remove('hidden');
+                loginBtn.className = 'py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 cursor-pointer';
+                regBtn.className = 'py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs cursor-pointer';
+            } else {
+                regForm?.classList.add('hidden');
+                loginForm?.classList.remove('hidden');
+                regBtn.className = 'py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 cursor-pointer';
+                loginBtn.className = 'py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs cursor-pointer';
+            }
+        }
+
+        function openGmailLoginModal() {
+            clearAuthFeedback();
+            updateHeaderAuthLabel();
+            // Pre-isi Gmail terakhir jika ada agar tinggal masukkan kata sandi saja
+            const loginEmailEl = document.getElementById('login-gmail-input');
+            const loginPassEl = document.getElementById('login-password-input');
+            const accounts = getSavedAccountsLocal();
+            const lastEmail =
+                currentUserSession?.email ||
+                (accounts.length > 0 ? accounts[accounts.length - 1].email : '');
+            if (loginEmailEl && lastEmail && !loginEmailEl.value) {
+                loginEmailEl.value = lastEmail;
+            }
+            if (loginPassEl) {
+                loginPassEl.value = '';
+            }
+            document.getElementById('gmail-auth-modal')?.classList.remove('hidden');
+        }
+
+        function closeGmailLoginModal() {
+            document.getElementById('gmail-auth-modal')?.classList.add('hidden');
+        }
+
+        function togglePasswordVisibility(inputId, btnEl) {
+            const inp = document.getElementById(inputId);
+            if (!inp) return;
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                if (btnEl) btnEl.textContent = 'Tutup';
+            } else {
+                inp.type = 'password';
+                if (btnEl) btnEl.textContent = 'Lihat';
+            }
+        }
+
+        async function handleGmailRegisterSubmit(event) {
+            event.preventDefault();
+            clearAuthFeedback();
+
+            const name = (document.getElementById('reg-name-input')?.value || '').trim();
+            const email = normalizeEmailAddress(document.getElementById('reg-gmail-input')?.value || '');
+            const password = document.getElementById('reg-password-input')?.value || '';
+
+            if (!email || !email.includes('@')) {
+                setAuthFeedback('Masukkan alamat Gmail yang valid (contoh: nama@gmail.com).', true);
+                return;
+            }
+            if (password.length < 6) {
+                setAuthFeedback('Kata sandi minimal 6 karakter.', true);
+                return;
+            }
+
+            const accounts = getSavedAccountsLocal();
+            const alreadyExists = accounts.some((acc) => normalizeEmailAddress(acc.email) === email);
+            if (alreadyExists) {
+                setAuthFeedback('Akun Gmail ini sudah terdaftar sebelumnya! Silakan langsung masuk dengan Gmail dan kata sandi Anda tanpa daftar ulang.', false);
+                switchAuthTab('login');
+                const loginEmailEl = document.getElementById('login-gmail-input');
+                if (loginEmailEl) loginEmailEl.value = email;
+                return;
+            }
+
+            const passwordHash = await hashPasswordSha256(password);
+            const newAccount = {
+                name: name || email.split('@')[0],
+                email,
+                passwordHash,
+                createdAt: Date.now()
+            };
+
+            saveAccountLocal(newAccount);
+            currentUserSession = { name: newAccount.name, email: newAccount.email };
+            writeStorageWithFallback(STORAGE_KEYS.SESSION, currentUserSession);
+
+            if (firestoreDb) {
+                try {
+                    await firestoreDb.collection('gmail_users').doc(email).set(newAccount, { merge: true });
+                } catch (err) {}
+            }
+
+            updateHeaderAuthLabel();
+            setAuthFeedback('Pendaftaran berhasil! Akun tersimpan dan tidak perlu daftar ulang lagi.', false);
+            setTimeout(() => {
+                closeGmailLoginModal();
+            }, 500);
+        }
+
+        async function handleGmailLoginSubmit(event) {
+            event.preventDefault();
+            clearAuthFeedback();
+
+            const email = normalizeEmailAddress(document.getElementById('login-gmail-input')?.value || '');
+            const password = document.getElementById('login-password-input')?.value || '';
+
+            if (!email || !password) {
+                setAuthFeedback('Masukkan alamat Gmail dan kata sandi terlebih dahulu.', true);
+                return;
+            }
+
+            const accounts = getSavedAccountsLocal();
+            let found = accounts.find((acc) => normalizeEmailAddress(acc.email) === email);
+
+            if (!found && firestoreDb) {
+                try {
+                    const doc = await firestoreDb.collection('gmail_users').doc(email).get();
+                    if (doc.exists) {
+                        found = doc.data();
+                        saveAccountLocal(found);
+                    }
+                } catch (err) {}
+            }
+
+            if (!found) {
+                setAuthFeedback('Akun Gmail ini belum terdaftar. Silakan klik tab "Daftar Akun Baru" untuk membuat akun & kata sandi.', true);
+                return;
+            }
+
+            const enteredHash = await hashPasswordSha256(password);
+            // Mendukung verifikasi hash SHA-256 maupun fallback plain jika ada data lama
+            const isPasswordValid =
+                (found.passwordHash && found.passwordHash === enteredHash) ||
+                (found.password && found.password === password);
+
+            if (!isPasswordValid) {
+                setAuthFeedback('Kata sandi salah. Silakan periksa kembali kata sandi Anda.', true);
+                return;
+            }
+
+            // Pastikan hash tersimpan rapi bila sebelumnya memakai format lama
+            if (!found.passwordHash) {
+                saveAccountLocal({ ...found, passwordHash: enteredHash });
+            }
+
+            currentUserSession = { name: found.name || email.split('@')[0], email: normalizeEmailAddress(found.email) };
+            writeStorageWithFallback(STORAGE_KEYS.SESSION, currentUserSession);
+
+            updateHeaderAuthLabel();
+            closeGmailLoginModal();
+            showAlert(`Selamat datang kembali, ${currentUserSession.name}!`, 'success');
+        }
+
+        function logoutGmailAccount() {
+            // Akun di STORAGE_KEYS.ACCOUNTS tetap tersimpan sehingga cukup login pakai Gmail + kata sandi
+            currentUserSession = null;
+            removeStorageWithFallback(STORAGE_KEYS.SESSION);
+            updateHeaderAuthLabel();
+            closeGmailLoginModal();
+        }
+
+        function initSavedAccountsOnLoad() {
+            try {
+                // Sinkronkan akun jika ada di salah satu storage cadangan
+                const existingAccounts = getSavedAccountsLocal();
+                if (existingAccounts.length > 0) {
+                    writeStorageWithFallback(STORAGE_KEYS.ACCOUNTS, existingAccounts);
+                }
+
+                const parsedSession = readStorageWithFallback(STORAGE_KEYS.SESSION);
+                if (parsedSession && parsedSession.email) {
+                    currentUserSession = {
+                        name: parsedSession.name || parsedSession.email.split('@')[0],
+                        email: normalizeEmailAddress(parsedSession.email)
+                    };
+                }
+            } catch (err) {}
+            updateHeaderAuthLabel();
+            renderRegisteredUsers();
+        }
+
+        function renderRegisteredUsers() {
+            const listEl = document.getElementById('registered-users-list');
+            const countEl = document.getElementById('registered-users-count');
+            const accounts = getSavedAccountsLocal();
+
+            if (countEl) countEl.textContent = String(accounts.length);
+            if (!listEl) return;
+
+            if (accounts.length === 0) {
+                listEl.innerHTML = '<p class="text-xs text-slate-400 px-1 py-2">Belum ada akun Gmail terdaftar.</p>';
+                return;
+            }
+
+            listEl.innerHTML = accounts
+                .map((acc) => {
+                    const isSelf = currentUserSession && currentUserSession.email === acc.email;
+                    const roomKey = 'dm_' + btoa(acc.email).replace(/=/g, '');
+                    const isActive = activeChatRoom === roomKey;
+                    return `
+                        <button
+                            type="button"
+                            onclick="selectPrivateRoom('${escapeHtml(acc.email)}', '${escapeHtml(acc.name || acc.email)}')"
+                            class="w-full text-left px-3 py-2 rounded-xl border transition flex items-center gap-2.5 cursor-pointer ${
+                                isActive
+                                    ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-700'
+                                    : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                            }"
+                        >
+                            <div class="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 font-extrabold text-xs flex items-center justify-center shrink-0">
+                                ${escapeHtml((acc.name || acc.email || 'U').charAt(0).toUpperCase())}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                                    ${escapeHtml(acc.name || acc.email)} ${isSelf ? '<span class="text-[10px] text-emerald-600 dark:text-emerald-400">(Kamu)</span>' : ''}
+                                </p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHtml(acc.email)}</p>
+                            </div>
+                        </button>
+                    `;
+                })
+                .join('');
+        }
+
+        /* =====================================================================
+         * RUANG DISKUSI & CHAT FULL SCREEN + @KB AI + PINNED TOP + DELETE FIX
+         * ===================================================================== */
+        function getAllMessagesLocal() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (err) {
+                return [];
+            }
+        }
+
+        function saveAllMessagesLocal(msgs) {
+            try {
+                localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(msgs));
+            } catch (err) {}
+        }
+
+        function getDeletedMessageIds() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.DELETED_IDS);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (err) {
+                return [];
+            }
+        }
+
+        function addDeletedMessageId(id) {
+            if (!id) return;
+            const list = getDeletedMessageIds();
+            if (!list.includes(id)) {
+                list.push(id);
+                try {
+                    localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify(list));
+                } catch (err) {}
+            }
+        }
+
+        function getClearedRoomsMap() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.CLEARED_ROOMS);
+                return raw ? JSON.parse(raw) : {};
+            } catch (err) {
+                return {};
+            }
+        }
+
+        function markRoomClearedAt(roomId, timestamp) {
+            const map = getClearedRoomsMap();
+            map[roomId] = timestamp || Date.now();
+            try {
+                localStorage.setItem(STORAGE_KEYS.CLEARED_ROOMS, JSON.stringify(map));
+            } catch (err) {}
+        }
+
+        function getPinnedMap() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.PINNED);
+                return raw ? JSON.parse(raw) : {};
+            } catch (err) {
+                return {};
+            }
+        }
+
+        function savePinnedMap(map) {
+            try {
+                localStorage.setItem(STORAGE_KEYS.PINNED, JSON.stringify(map));
+            } catch (err) {}
+        }
+
+        function openCommunityModal() {
+            document.getElementById('community-modal')?.classList.remove('hidden');
+            renderRegisteredUsers();
+            renderPinnedBanner();
+            renderChatMessages();
+        }
+
+        function closeCommunityModal() {
+            document.getElementById('community-modal')?.classList.add('hidden');
+        }
+
+        function selectChatRoom(roomId) {
+            activeChatRoom = roomId;
+            const pubBtn = document.getElementById('room-btn-public');
+            const aiBtn = document.getElementById('room-btn-kb-ai');
+            const titleEl = document.getElementById('active-room-title');
+            const subEl = document.getElementById('active-room-subtitle');
+
+            if (roomId === 'public') {
+                pubBtn.className = 'w-full px-3.5 py-2.5 rounded-2xl bg-indigo-600 text-white text-xs sm:text-sm font-bold flex items-center justify-between shadow-xs cursor-pointer';
+                aiBtn.className = 'w-full px-3.5 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold flex items-center justify-between transition cursor-pointer';
+                if (titleEl) titleEl.textContent = 'Forum Diskusi Publik';
+                if (subEl) subEl.textContent = '• Ketik @KB AI untuk bertanya langsung';
+            } else if (roomId === 'kb_ai') {
+                aiBtn.className = 'w-full px-3.5 py-2.5 rounded-2xl bg-indigo-600 text-white text-xs sm:text-sm font-bold flex items-center justify-between shadow-xs cursor-pointer';
+                pubBtn.className = 'w-full px-3.5 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold flex items-center justify-between transition cursor-pointer';
+                if (titleEl) titleEl.textContent = 'Tanya @KB AI (Asisten Pelajaran)';
+                if (subEl) subEl.textContent = '• Asisten AI siap membantu menjawab materi';
+            }
+
+            renderRegisteredUsers();
+            renderPinnedBanner();
+            renderChatMessages();
+        }
+
+        function selectPrivateRoom(email, name) {
+            const roomKey = 'dm_' + btoa(email).replace(/=/g, '');
+            activeChatRoom = roomKey;
+            const pubBtn = document.getElementById('room-btn-public');
+            const aiBtn = document.getElementById('room-btn-kb-ai');
+            const titleEl = document.getElementById('active-room-title');
+            const subEl = document.getElementById('active-room-subtitle');
+
+            pubBtn.className = 'w-full px-3.5 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold flex items-center justify-between transition cursor-pointer';
+            aiBtn.className = 'w-full px-3.5 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold flex items-center justify-between transition cursor-pointer';
+
+            if (titleEl) titleEl.textContent = `Chat: ${name}`;
+            if (subEl) subEl.textContent = `• ${email}`;
+
+            renderRegisteredUsers();
+            renderPinnedBanner();
+            renderChatMessages();
+        }
+
+        function insertKbAiMention() {
+            const inp = document.getElementById('chat-message-input');
+            if (!inp) return;
+            if (!inp.value.includes('@KB AI')) {
+                inp.value = inp.value ? `${inp.value} @KB AI ` : '@KB AI ';
+            }
+            inp.focus();
+        }
+
+        function pinAnnouncementPrompt() {
+            const existingMap = getPinnedMap();
+            const currentPin = existingMap[activeChatRoom]?.text || '';
+            const nextText = prompt('Masukkan teks pengumuman yang ingin disematkan di bagian paling atas:', currentPin);
+            if (nextText === null) return;
+            const trimmed = nextText.trim();
+            if (!trimmed) {
+                unpinAnnouncement();
+                return;
+            }
+            existingMap[activeChatRoom] = {
+                text: trimmed,
+                author: currentUserSession?.name || 'Pengguna',
+                updatedAt: Date.now()
+            };
+            savePinnedMap(existingMap);
+            renderPinnedBanner();
+        }
+
+        function unpinAnnouncement() {
+            const map = getPinnedMap();
+            delete map[activeChatRoom];
+            savePinnedMap(map);
+            renderPinnedBanner();
+        }
+
+        function renderPinnedBanner() {
+            const banner = document.getElementById('pinned-announcement-banner');
+            const textEl = document.getElementById('pinned-announcement-text');
+            const authorEl = document.getElementById('pinned-author-label');
+            const map = getPinnedMap();
+            const item = map[activeChatRoom];
+
+            if (!banner || !textEl) return;
+            if (item && item.text) {
+                textEl.textContent = item.text;
+                if (authorEl) authorEl.textContent = item.author ? `• oleh ${item.author}` : '';
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function deleteChatMessage(msgId) {
+            if (!msgId) return;
+            addDeletedMessageId(msgId);
+            const msgs = getAllMessagesLocal().filter((m) => m.id !== msgId);
+            saveAllMessagesLocal(msgs);
+            renderChatMessages();
+        }
+
+        function clearCurrentRoomMessages() {
+            const now = Date.now();
+            markRoomClearedAt(activeChatRoom, now);
+            const remaining = getAllMessagesLocal().filter((m) => m.roomId !== activeChatRoom);
+            saveAllMessagesLocal(remaining);
+            renderChatMessages();
+        }
+
+        function generateKbAiReply(questionText) {
+            const cleanQ = questionText.replace(/@KB\s*AI/gi, '').trim() || 'topik pelajaran ini';
+            return (
+                `Halo! Berikut ringkasan jawaban **@KB AI** mengenai "${cleanQ}":\n\n` +
+                `1. **Inti Konsep:** Pahami definisi utama, syarat berlakunya, dan hubungan sebab-akibat dari materi "${cleanQ}".\n` +
+                `2. **Contoh Penerapan:** Hubungkan konsep tersebut dengan contoh nyata atau langkah penyelesaian soal secara berurutan.\n` +
+                `3. **Tips Belajar:** Catat kata kunci pentingnya dan uji pemahamanmu lewat kuis latihan.`
+            );
+        }
+
+        function handleSendChatMessage(event) {
+            event.preventDefault();
+            const inp = document.getElementById('chat-message-input');
+            if (!inp) return;
+            const text = inp.value.trim();
+            if (!text) return;
+
+            const senderName = currentUserSession?.name || 'Pengguna';
+            const senderEmail = currentUserSession?.email || '';
+            const now = Date.now();
+
+            const userMsg = {
+                id: 'msg_' + now + '_' + Math.random().toString(36).slice(2, 7),
+                roomId: activeChatRoom,
+                senderName,
+                senderEmail,
+                isAi: false,
+                text,
+                createdAt: now
+            };
+
+            const allMsgs = getAllMessagesLocal();
+            allMsgs.push(userMsg);
+            saveAllMessagesLocal(allMsgs);
+            inp.value = '';
+            renderChatMessages();
+
+            // Jika menandai @KB AI atau berada di ruang Tanya @KB AI
+            if (activeChatRoom === 'kb_ai' || /@kb\s*ai/i.test(text)) {
+                setTimeout(() => {
+                    const aiMsg = {
+                        id: 'msg_ai_' + (Date.now() + 1) + '_' + Math.random().toString(36).slice(2, 6),
+                        roomId: activeChatRoom,
+                        senderName: 'KB AI',
+                        senderEmail: 'kb.ai@assistant.local',
+                        isAi: true,
+                        text: generateKbAiReply(text),
+                        createdAt: Date.now()
+                    };
+                    const updated = getAllMessagesLocal();
+                    updated.push(aiMsg);
+                    saveAllMessagesLocal(updated);
+                    renderChatMessages();
+                }, 350);
+            }
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chat-messages-container');
+            if (!container) return;
+
+            const prefs = getUserPreferences();
+            const deletedIds = new Set(getDeletedMessageIds());
+            const clearedMap = getClearedRoomsMap();
+            const clearedAfter = Number(clearedMap[activeChatRoom] || 0);
+
+            const messages = getAllMessagesLocal()
+                .filter((m) => m.roomId === activeChatRoom)
+                .filter((m) => !deletedIds.has(m.id))
+                .filter((m) => Number(m.createdAt || 0) > clearedAfter)
+                .sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center py-12 px-4 text-slate-400 dark:text-slate-500">
+                        <p class="text-2xl mb-2">💬</p>
+                        <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Belum ada pesan di ruang ini</p>
+                        <p class="text-xs mt-1">Ketik pesan atau tandai <span class="font-bold text-indigo-600 dark:text-indigo-400">@KB AI</span> untuk mulai berdiskusi.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const padClass = prefs.compactChat ? 'p-2.5 text-xs' : 'p-3.5 text-xs sm:text-sm';
+
+            container.innerHTML = messages
+                .map((m) => {
+                    const isSelf = !m.isAi && currentUserSession && m.senderEmail === currentUserSession.email;
+                    const timeStr = new Date(Number(m.createdAt || Date.now())).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    if (m.isAi) {
+                        return `
+                            <div class="flex flex-col items-start max-w-2xl animate-fade-in-up">
+                                <div class="flex items-center gap-2 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mb-1 px-1">
+                                    <span>🤖 KB AI</span>
+                                    <span class="font-normal text-slate-400">${escapeHtml(timeStr)}</span>
+                                    <button type="button" onclick="deleteChatMessage('${escapeHtml(m.id)}')" class="text-slate-400 hover:text-rose-600 cursor-pointer" title="Hapus pesan">🗑️</button>
+                                </div>
+                                <div class="rounded-2xl rounded-tl-xs bg-indigo-50/90 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/70 text-slate-800 dark:text-slate-100 ${padClass} whitespace-pre-line leading-relaxed shadow-2xs">
+                                    ${formatMessageText(m.text)}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="flex flex-col ${isSelf ? 'items-end ml-auto' : 'items-start'} max-w-xl animate-fade-in-up">
+                            <div class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mb-1 px-1">
+                                <span class="font-bold text-slate-700 dark:text-slate-200">${escapeHtml(m.senderName || 'Pengguna')}</span>
+                                <span>${escapeHtml(timeStr)}</span>
+                                <button type="button" onclick="deleteChatMessage('${escapeHtml(m.id)}')" class="text-slate-400 hover:text-rose-600 cursor-pointer" title="Hapus pesan">🗑️</button>
+                            </div>
+                            <div class="rounded-2xl ${isSelf ? 'rounded-tr-xs bg-indigo-600 text-white' : 'rounded-tl-xs bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'} ${padClass} whitespace-pre-line leading-relaxed shadow-2xs">
+                                ${formatMessageText(m.text)}
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatMessageText(raw) {
+            const escaped = escapeHtml(raw || '');
+            return escaped.replace(/(@KB\s*AI)/gi, '<span class="font-extrabold underline decoration-amber-400">$1</span>');
+        }
+
+        /* =====================================================================
+         * FOTO CATATAN & KAMERA LIVE WEB
+         * ===================================================================== */
+        function handlePhotoFilesSelected(event) {
+            const files = Array.from(event.target?.files || []);
+            if (!files.length) return;
+            addImageFilesToSelection(files);
+            event.target.value = '';
+        }
+
+        function addImageFilesToSelection(files) {
+            const remaining = 6 - selectedPhotos.length;
+            if (remaining <= 0) {
+                showAlert('Maksimal 6 foto catatan per sesi kuis.', 'info');
+                return;
+            }
+            const batch = files.slice(0, remaining);
+            batch.forEach((file) => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    selectedPhotos.push({
+                        name: file.name || 'catatan.jpg',
+                        dataUrl: e.target.result
+                    });
+                    renderPhotoPreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderPhotoPreviews() {
+            const grid = document.getElementById('photo-preview-list');
+            if (!grid) return;
+            if (selectedPhotos.length === 0) {
+                grid.classList.add('hidden');
+                grid.innerHTML = '';
+                return;
+            }
+            grid.classList.remove('hidden');
+            grid.innerHTML = selectedPhotos
+                .map(
+                    (p, idx) => `
+                <div class="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 aspect-[4/3] bg-slate-100 dark:bg-slate-800">
+                    <img src="${p.dataUrl}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover" />
+                    <button
+                        type="button"
+                        onclick="removeSelectedPhoto(${idx})"
+                        class="absolute top-2 right-2 w-7 h-7 rounded-full bg-rose-600 text-white text-xs font-bold flex items-center justify-center shadow-sm cursor-pointer"
+                        aria-label="Hapus foto"
+                    >
+                        ✕
+                    </button>
+                </div>
+            `
+                )
+                .join('');
+        }
+
+        function removeSelectedPhoto(idx) {
+            selectedPhotos.splice(idx, 1);
+            renderPhotoPreviews();
+        }
+
+        async function openLiveCameraModal() {
+            const modal = document.getElementById('camera-live-modal');
+            const statusEl = document.getElementById('camera-status-msg');
+            modal?.classList.remove('hidden');
+            if (statusEl) {
+                statusEl.classList.add('hidden');
+                statusEl.textContent = '';
+            }
+            await startCameraStream();
+        }
+
+        async function startCameraStream() {
+            stopCameraStream();
+            const video = document.getElementById('camera-video-preview');
+            const statusEl = document.getElementById('camera-status-msg');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                if (statusEl) {
+                    statusEl.textContent = 'Kamera live tidak didukung pada browser ini. Gunakan unggah foto dari galeri.';
+                    statusEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: cameraFacingMode },
+                    audio: false
+                });
+                if (video) {
+                    video.srcObject = cameraStream;
+                }
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.textContent = 'Izin kamera belum diberikan atau perangkat tidak memiliki akses kamera langsung.';
+                    statusEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        function stopCameraStream() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach((t) => t.stop());
+                cameraStream = null;
+            }
+        }
+
+        function closeLiveCameraModal() {
+            stopCameraStream();
+            document.getElementById('camera-live-modal')?.classList.add('hidden');
+        }
+
+        async function switchCameraFacingMode() {
+            cameraFacingMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+            await startCameraStream();
+        }
+
+        function captureLiveCameraPhoto() {
+            const video = document.getElementById('camera-video-preview');
+            if (!video || !cameraStream) {
+                showAlert('Kamera belum aktif untuk mengambil foto.', 'error');
+                return;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            selectedPhotos.push({
+                name: `foto_catatan_${Date.now()}.jpg`,
+                dataUrl
+            });
+            renderPhotoPreviews();
+            closeLiveCameraModal();
+        }
+
+        /* =====================================================================
+         * JUMLAH SOAL & PEMBUATAN KUIS LATIHAN
+         * ===================================================================== */
+        function setQuickQuestionCount(num) {
+            const inp = document.getElementById('question-count');
+            if (!inp) return;
+            const clamped = Math.min(Math.max(Number(num) || 1, 1), 100);
+            inp.value = String(clamped);
+        }
+
+        function getSanitizedQuestionCount() {
+            const inp = document.getElementById('question-count');
+            const parsed = parseInt(inp?.value || '8', 10);
+            const safe = Number.isNaN(parsed) ? 8 : Math.min(Math.max(parsed, 1), 100);
+            if (inp) inp.value = String(safe);
+            return safe;
+        }
+
+        function resetSetupForm() {
+            selectedPhotos = [];
+            renderPhotoPreviews();
+            const topicInput = document.getElementById('topic-or-notes-input');
+            const bonusInput = document.getElementById('bonus-focus');
+            const countInput = document.getElementById('question-count');
+            const diffSelect = document.getElementById('difficulty-level');
+            if (topicInput) topicInput.value = '';
+            if (bonusInput) bonusInput.value = '';
+            if (countInput) countInput.value = '8';
+            if (diffSelect) diffSelect.value = 'Sedang';
+            hideAlert();
+            showQuizHome();
+        }
+
+        function generateQuizFromInputs() {
+            hideAlert();
+            const count = getSanitizedQuestionCount();
+            const difficulty = document.getElementById('difficulty-level')?.value || 'Sedang';
+            const rawTopic = (document.getElementById('topic-or-notes-input')?.value || '').trim();
+            const bonus = (document.getElementById('bonus-focus')?.value || '').trim();
+
+            if (!rawTopic && selectedPhotos.length === 0) {
+                showAlert('Silakan unggah/potret foto catatan atau ketik topik/catatan pelajaran terlebih dahulu.', 'error');
+                return;
+            }
+
+            const subjectTitle = rawTopic
+                ? rawTopic.split('\n')[0].slice(0, 70)
+                : `Catatan Foto (${selectedPhotos.length} gambar)`;
+
+            const focusNote = bonus ? ` (Fokus: ${bonus})` : '';
+            const questions = [];
+
+            for (let i = 1; i <= count; i++) {
+                const optionA = `Memahami konsep utama dan hubungan sebab-akibat pada ${subjectTitle}${focusNote}`;
+                const optionB = `Mengabaikan data pokok dan hanya menghafal tanpa memahami konteks`;
+                const optionC = `Menerapkan aturan yang bertentangan dengan prinsip dasar materi`;
+                const optionD = `Menyimpulkan tanpa bukti atau langkah analisis yang relevan`;
+
+                questions.push({
+                    number: i,
+                    question: `[${difficulty}] Soal ke-${i}: Manakah pernyataan yang paling tepat terkait materi "${subjectTitle}"${focusNote}?`,
+                    options: [
+                        { key: 'A', label: optionA },
+                        { key: 'B', label: optionB },
+                        { key: 'C', label: optionC },
+                        { key: 'D', label: optionD }
+                    ],
+                    correctKey: 'A',
+                    explanation: `Jawaban tepat adalah A karena menjawab inti materi "${subjectTitle}"${focusNote} secara runtut dan sesuai tingkat kesulitan ${difficulty}.`
+                });
+            }
+
+            currentQuizData = {
+                title: subjectTitle,
+                difficulty,
+                count,
+                questions
+            };
+            userAnswers = {};
+
+            document.getElementById('quiz-setup-section')?.classList.add('hidden');
+            document.getElementById('quiz-result-section')?.classList.add('hidden');
+            document.getElementById('quiz-active-section')?.classList.remove('hidden');
+
+            const titleEl = document.getElementById('quiz-topic-title');
+            const metaEl = document.getElementById('quiz-meta-info');
+            if (titleEl) titleEl.textContent = subjectTitle;
+            if (metaEl) {
+                metaEl.textContent = `${count} Soal • Tingkat: ${difficulty}${selectedPhotos.length ? ` • ${selectedPhotos.length} Foto Catatan` : ''}`;
+            }
+
+            renderActiveQuizQuestions();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderActiveQuizQuestions() {
+            const listEl = document.getElementById('quiz-questions-list');
+            const progEl = document.getElementById('quiz-progress-label');
+            if (!listEl || !currentQuizData) return;
+
+            const answeredCount = Object.keys(userAnswers).length;
+            if (progEl) {
+                progEl.textContent = `Terjawab ${answeredCount} dari ${currentQuizData.questions.length} soal`;
+            }
+
+            listEl.innerHTML = currentQuizData.questions
+                .map((q) => {
+                    const chosen = userAnswers[q.number] || '';
+                    return `
+                        <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 space-y-3">
+                            <p class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
+                                ${escapeHtml(q.question)}
+                            </p>
+                            <div class="space-y-2">
+                                ${q.options
+                                    .map((opt) => {
+                                        const selected = chosen === opt.key;
+                                        return `
+                                            <button
+                                                type="button"
+                                                onclick="selectQuizAnswer(${q.number}, '${opt.key}')"
+                                                class="w-full text-left px-4 py-2.5 rounded-2xl border text-xs sm:text-sm font-medium transition flex items-start gap-2.5 cursor-pointer ${
+                                                    selected
+                                                        ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-500 text-indigo-900 dark:text-indigo-100 font-bold'
+                                                        : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                                }"
+                                            >
+                                                <span class="font-extrabold">${opt.key}.</span>
+                                                <span>${escapeHtml(opt.label)}</span>
+                                            </button>
+                                        `;
+                                    })
+                                    .join('')}
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+        }
+
+        function selectQuizAnswer(qNum, key) {
+            userAnswers[qNum] = key;
+            renderActiveQuizQuestions();
+        }
+
+        function gradeCurrentQuiz() {
+            if (!currentQuizData) return;
+            const total = currentQuizData.questions.length;
+            let correct = 0;
+            currentQuizData.questions.forEach((q) => {
+                if (userAnswers[q.number] === q.correctKey) correct++;
+            });
+            const score = Math.round((correct / Math.max(total, 1)) * 100);
+
+            document.getElementById('quiz-active-section')?.classList.add('hidden');
+            document.getElementById('quiz-result-section')?.classList.remove('hidden');
+
+            const sumEl = document.getElementById('quiz-score-summary');
+            const fbEl = document.getElementById('quiz-score-feedback');
+            if (sumEl) sumEl.textContent = `Nilai: ${score} (${correct}/${total} Benar)`;
+            if (fbEl) {
+                fbEl.textContent =
+                    score >= 80
+                        ? 'Luar biasa! Pemahaman materimu sudah sangat mantap.'
+                        : 'Bagus! Terus berlatih dan periksa pembahasan soal untuk memperdalam materi.';
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function reviewQuizAnswers() {
+            if (!currentQuizData) return;
+            document.getElementById('quiz-result-section')?.classList.add('hidden');
+            document.getElementById('quiz-active-section')?.classList.remove('hidden');
+
+            const listEl = document.getElementById('quiz-questions-list');
+            if (!listEl) return;
+
+            listEl.innerHTML = currentQuizData.questions
+                .map((q) => {
+                    const chosen = userAnswers[q.number] || '-';
+                    const isRight = chosen === q.correctKey;
+                    return `
+                        <div class="bg-white dark:bg-slate-900 rounded-3xl border ${isRight ? 'border-emerald-300 dark:border-emerald-700' : 'border-rose-300 dark:border-rose-800'} p-5 space-y-2.5">
+                            <p class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">${escapeHtml(q.question)}</p>
+                            <p class="text-xs font-bold ${isRight ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
+                                Jawabanmu: ${escapeHtml(chosen)} • Kunci: ${escapeHtml(q.correctKey)}
+                            </p>
+                            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl">
+                                ${escapeHtml(q.explanation)}
+                            </p>
+                        </div>
+                    `;
+                })
+                .join('');
+        }
+
+        function showQuizHome() {
+            document.getElementById('quiz-active-section')?.classList.add('hidden');
+            document.getElementById('quiz-result-section')?.classList.add('hidden');
+            document.getElementById('quiz-setup-section')?.classList.remove('hidden');
+        }
+
+        /* =====================================================================
+         * UNDUH SALINAN FILE WEB .HTML & UTILITAS
+         * ===================================================================== */
+        function downloadStandaloneHtmlCopy() {
+            try {
+                const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'kuis-pelajaran.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                showAlert('Gagal mengunduh file .html pada browser ini.', 'error');
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        /* =====================================================================
+         * INISIALISASI APLIKASI
+         * ===================================================================== */
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (firebaseConfig && window.firebase && firebaseConfig.projectId) {
+                    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+                    firestoreDb = app.firestore();
+                }
+            } catch (err) {
+                firestoreDb = null;
+            }
+
+            initTheme();
+            applyUserPreferencesToUI();
+            initSavedAccountsOnLoad();
+            renderPinnedBanner();
+            renderChatMessages();
+            scheduleSplashDismiss();
+        });
+    </script>
+</body>
+</html>
